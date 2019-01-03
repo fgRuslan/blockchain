@@ -138,7 +138,12 @@ class Blockchain(object):
             if response.status_code == 200:
                 peers = response.json()
                 print(peers)
-        for peer in peers:
+
+        final_list = []
+        for num in peers:
+            if num not in final_list:
+                final_list.append(num)
+        for peer in final_list:
             self.nodes.append(peer)
         save_nodes()
         if len(peers) > 0:
