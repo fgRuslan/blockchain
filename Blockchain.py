@@ -3,8 +3,9 @@ import json
 from time import time
 from urllib.parse import urlparse
 
-from flask import Flask,jsonify, request
+from flask import Flask, jsonify, request
 from uuid import uuid4
+import requests
 
 node_identifier = str(uuid4()).replace('-', '')
 
@@ -13,10 +14,10 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.nodes = set()
-    def new_block(self, proof, previous_hash=None):
+    def new_block(self, proof, previous_hash=None, time_stamp=None):
         block = {
             'index': len(self.chain) + 1,
-            'timestamp': time(),
+            'timestamp': time_stamp or time(),
             'transactions': self.current_transactions,
             'proof': proof,
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
@@ -32,7 +33,6 @@ class Blockchain(object):
             'amount': amount,
         })
         return self.last_block['index'] + 1
-        #mine()#Start mining in order to save out transaction
     
     @staticmethod
     def hash(block):
@@ -54,7 +54,7 @@ class Blockchain(object):
         return guess_hash[:4] == "0000"
     def register_node(self, address):
         parsed_url = urlparse(address)
-        self.nodes.add(parsed_url,netloc)
+        self.nodes.add(parsed_url.netloc)
     def validate_chain(self, chain):
         last_block = chain[0]
         current_index = 1
@@ -83,7 +83,7 @@ class Blockchain(object):
                 chain = response.json()['chain']
 
                 # Check if the length is longer and the chain is valid
-                if length > max_length and self.valid_chain(chain):
+                if length > max_length and self.validate_chain(chain):
                     max_length = length
                     new_chain = chain
 
@@ -124,4 +124,4 @@ class Blockchain(object):
         previous_hash = self.hash(last_block)
         block = self.new_block(proof, previous_hash)
 blockchain = Blockchain()
-blockchain.new_block(previous_hash=1, proof=100)
+blockchain.new_block(previous_hash=1, proof=100, time_stamp=1337)

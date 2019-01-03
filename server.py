@@ -8,6 +8,15 @@ def load_all():
         print("Could not load chain from file")
     finally:
         pass
+def save_all():
+    try:
+        blockchain.save_chain()
+        blockchain.save_pending_tx()
+    except:
+        print("Could not save chain to file")
+    finally:
+        pass
+
 load_all()
 app = Flask(__name__)
 
@@ -19,16 +28,18 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
+
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    load_all()
     values = request.get_json()
- 
+    print(request.get_json())
     nodes = values.get('nodes')
+    print(nodes)
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
  
     for node in nodes:
+        print(node)
         blockchain.register_node(node)
  
     response = {
@@ -37,10 +48,9 @@ def register_nodes():
     }
     return jsonify(response), 201
  
- 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
-    load_all()
+    print(blockchain.nodes)
     replaced = blockchain.resolve_conflicts()
  
     if replaced:
@@ -48,6 +58,7 @@ def consensus():
             'message': 'Our chain was replaced',
             'new_chain': blockchain.chain
         }
+        save_all()
     else:
         response = {
             'message': 'Our chain is authoritative',
