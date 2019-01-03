@@ -35,7 +35,6 @@ load_all()
 load_nodes()
 try:
     blockchain.resolve_conflicts()
-    blockchain.receive_pending_tx()
 except:
     print("Could not syncronize")
 save_nodes()
@@ -49,14 +48,6 @@ def full_chain():
     response = {
         'chain': blockchain.chain,
         'length': len(blockchain.chain),
-    }
-    return jsonify(response), 200
-
-@app.route('/pending_txs', methods=['GET'])
-def pending_transactions():
-    load_all()
-    response = {
-        'pending_txs': blockchain.current_transactions,
     }
     return jsonify(response), 200
 
@@ -83,8 +74,6 @@ def consensus():
     replaced = blockchain.resolve_conflicts()
 
     if replaced:
-        replaced_pending_txs = blockchain.receive_pending_tx()
-        blockchain.current_transactions = replaced_pending_txs
         save_nodes()
         save_all()
         response = {
@@ -92,8 +81,6 @@ def consensus():
             'new_chain': blockchain.chain
         }
     else:
-        replaced_pending_txs = blockchain.receive_pending_tx()
-        blockchain.current_transactions = replaced_pending_txs
         response = {
             'message': 'Our chain is authoritative',
             'chain': blockchain.chain
