@@ -101,7 +101,22 @@ def consensus():
 
     return jsonify(response), 200
 
-
+@app.route('/peers/list', methods=['GET'])
+def peer_list():
+    peers = blockchain.nodes
+    return jsonify(peers), 200
+@app.route('/peers/discover', methods=['GET'])
+def peers_discover():
+    result = blockchain.discover_peers()
+    if result:
+        response = {
+            'message': 'You discovered some new peers'
+        }
+    else:
+        response = {
+            'message': 'You could not discover some new peers'
+        }
+    return jsonify(response), 200
 if __name__ == '__main__':
     from argparse import ArgumentParser
 

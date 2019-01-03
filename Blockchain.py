@@ -129,7 +129,7 @@ class Blockchain(object):
         last_block = self.last_block
         last_proof = last_block['proof']
         proof = self.proof_of_work(last_proof)
-     
+
         # Мы должны получить вознаграждение за найденное подтверждение
         # Отправитель “0” означает, что узел заработал крипто-монету
         self.new_transaction(
@@ -137,9 +137,24 @@ class Blockchain(object):
             recipient=node_identifier,
             amount=50,
         )
-     
         # Создаем новый блок, путем внесения его в цепь
         previous_hash = self.hash(last_block)
         block = self.new_block(proof, previous_hash)
+    def discover_peers(self):
+        neighbours = self.nodes
+        peers = []
+        for node in neighbours:
+            response = requests.get(f'http://{node}/peers/list')
+            if response.status_code == 200:
+                peers = response.json()
+                print(peers)
+        for peer in peers:
+            self.nodes.append(peer)
+        save_nodes()
+        if len(peers) > 0:
+            return True
+        else:
+            return False
+
 blockchain = Blockchain()
 blockchain.new_block(previous_hash=1, proof=100, time_stamp=1337)
