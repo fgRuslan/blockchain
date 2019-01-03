@@ -106,6 +106,13 @@ class Blockchain(object):
     def load_pending_tx(self):
         with open('pending_txs.dat', 'r') as file_object:
             self.current_transactions = json.load(file_object)
+    def save_nodes(self):
+        with open('nodes.dat', 'w') as outfile:
+            json.dump(self.nodes, outfile)
+    def load_nodes(self):
+        file_object = open('nodes.dat', 'r')
+        dict_object = json.load(file_object)
+        self.nodes = dict_object
     def mine(self):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
         last_block = self.last_block
