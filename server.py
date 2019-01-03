@@ -20,19 +20,26 @@ def save_nodes():
     try:
         blockchain.save_nodes()
     except:
-        print("ould not save nodes to file")
+        print("Could not save nodes to file")
     finally:
         pass
 def load_nodes():
     try:
         blockchain.load_nodes()
     except:
-        print("ould not load nodes from file")
+        print("Could not load nodes from file")
     finally:
         pass
 
 load_all()
 load_nodes()
+try:
+    blockchain.resolve_conflicts()
+except:
+    print("Could not syncronize")
+save_nodes()
+save_all()
+
 app = Flask(__name__)
 
 @app.route('/chain', methods=['GET'])
@@ -65,7 +72,7 @@ def register_nodes():
 def consensus():
     print(blockchain.nodes)
     replaced = blockchain.resolve_conflicts()
- 
+
     if replaced:
         save_nodes()
         save_all()
@@ -77,10 +84,10 @@ def consensus():
         response = {
             'message': 'Our chain is authoritative',
             'chain': blockchain.chain
-        }
+            }
 
- 
     return jsonify(response), 200
+
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

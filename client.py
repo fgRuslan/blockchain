@@ -26,7 +26,10 @@ def send():
     blockchain.new_transaction(address, send_entry.get(), int(send_amount.get()))
 def save_nodes():
     f = open("nodes.dat", "w")
-    f.write(nodes_list.get(1.0, END))
+    lst = []
+    lst = nodes_list.get(1.0, END).splitlines()
+    json.dump(lst, f)
+    #f.write(nodes_list.get(1.0, END))
     f.close()
     pass
 def nodes_window():

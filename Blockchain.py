@@ -68,6 +68,7 @@ class Blockchain(object):
             current_index += 1
             return True
     def resolve_conflicts(self):
+        print("resolving conflicts")
         neighbours = self.nodes
         new_chain = None
 
@@ -124,7 +125,7 @@ class Blockchain(object):
         self.new_transaction(
             sender="0",
             recipient=node_identifier,
-            amount=1,
+            amount=50,
         )
      
         # Создаем новый блок, путем внесения его в цепь
