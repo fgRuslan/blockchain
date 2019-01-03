@@ -94,6 +94,16 @@ class Blockchain(object):
             return True
 
         return False
+
+    def receive_pending_tx(self):
+        print("receiving pending txs from nodes")
+        neighbours = self.nodes
+        for node in neighbours:
+            response = requests.get(f'http://{node}/pending_txs')
+            if response.status_code == 200:
+                self.current_transactions = response.json()['pending_txs']
+                return self.current_transactions
+
     def save_chain(self):
         with open('blockchain.dat', 'w') as outfile:
             json.dump(self.chain, outfile)
