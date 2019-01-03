@@ -1,10 +1,9 @@
 exec(open("./Blockchain.py").read())
-
+#1337
 def load_all():
     try:
         blockchain.load_chain()
         blockchain.load_pending_tx()
-        blockchain.load_nodes()
     except:
         print("Could not load chain from file")
     finally:
@@ -13,13 +12,27 @@ def save_all():
     try:
         blockchain.save_chain()
         blockchain.save_pending_tx()
-        blockchain.save_nodes()
     except:
         print("Could not save chain to file")
     finally:
         pass
+def save_nodes():
+    try:
+        blockchain.save_nodes()
+    except:
+        print("ould not save nodes to file")
+    finally:
+        pass
+def load_nodes():
+    try:
+        blockchain.load_nodes()
+    except:
+        print("ould not load nodes from file")
+    finally:
+        pass
 
 load_all()
+load_nodes()
 app = Flask(__name__)
 
 @app.route('/chain', methods=['GET'])
@@ -45,6 +58,7 @@ def register_nodes():
         'message': 'New nodes have been added',
         'total_nodes': list(blockchain.nodes),
     }
+    save_nodes()
     return jsonify(response), 201
  
 @app.route('/nodes/resolve', methods=['GET'])
@@ -53,6 +67,7 @@ def consensus():
     replaced = blockchain.resolve_conflicts()
  
     if replaced:
+        save_nodes()
         save_all()
         response = {
             'message': 'Our chain was replaced',

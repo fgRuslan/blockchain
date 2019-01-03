@@ -13,7 +13,7 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-        self.nodes = set()
+        self.nodes = []
     def new_block(self, proof, previous_hash=None, time_stamp=None):
         block = {
             'index': len(self.chain) + 1,
@@ -54,7 +54,7 @@ class Blockchain(object):
         return guess_hash[:4] == "0000"
     def register_node(self, address):
         parsed_url = urlparse(address)
-        self.nodes.add(parsed_url.netloc)
+        self.nodes.append(parsed_url.netloc)
     def validate_chain(self, chain):
         last_block = chain[0]
         current_index = 1
