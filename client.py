@@ -18,10 +18,9 @@ address=node_identifier
 def save_blockchain():
     blockchain.save_chain()
     blockchain.save_pending_tx()
-    pass
 def send():
     blockchain.new_transaction(address, send_entry.get(), int(send_amount.get()))
-    pass
+
 menubar = Menu(root)
 root.config(menu=menubar)
 
@@ -38,4 +37,5 @@ l1.pack(pady=10)
 send_entry.pack()
 send_amount.pack()
 send_button.pack(pady=10)
+
 root.mainloop()
