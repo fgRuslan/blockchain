@@ -131,6 +131,7 @@ class Blockchain(object):
         previous_hash = self.hash(last_block)
         block = self.new_block(proof, previous_hash)
     def discover_peers(self):
+        load_nodes()
         neighbours = self.nodes
         peers = []
         for node in neighbours:
