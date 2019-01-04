@@ -7,6 +7,11 @@ from flask import Flask, jsonify, request
 from uuid import uuid4
 import requests
 
+import nacl.utils
+from nacl.public import PrivateKey, Box
+import nacl.encoding
+import nacl.signing
+
 node_identifier = str(uuid4()).replace('-', '')
 
 class Blockchain(object):
@@ -14,26 +19,88 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.nodes = []
+        self.current_addresses = {}
+
+    def new_address(self, address, key):
+        if address in self.addresses():
+            return False
+        blockchain.current_addresses[address] = key
+        self.save_chain()
+        self.save_pending_tx()
+        return True
+
+    def addresses(self):
+        result = {}
+        for c in self.chain:
+            print(c)
+            for a,v in c['addresses'].items():
+                if a in result:
+                    raise Exception("Address should only exist once in chain")
+                result[a] = v
+        return result
+
+    def balances(self):
+        response = {}
+        for c in self.chain:
+            for t in c['transactions']:
+                #import pdb; pdb.set_trace()
+                if t['sender'] not in response:
+                    response[t['sender']] = 0
+                if t['recipient'] not in response:
+                    response[t['recipient']] = 0
+                response[t['sender']] -= t['amount']
+                response[t['recipient']] += t['amount']
+        # Transactions not yet in the chain (not sure right way to include these..)
+        for t in self.current_transactions:
+            if t['sender'] not in response:
+                response[t['sender']] = 0
+            if t['recipient'] not in response:
+                response[t['recipient']] = 0
+            response[t['sender']] -= t['amount']
+            response[t['recipient']] += t['amount']
+        return response
+
     def new_block(self, proof, previous_hash=None, time_stamp=None):
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time_stamp or time(),
             'transactions': self.current_transactions,
+            'addresses': self.current_addresses,
             'proof': proof,
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
         self.current_transactions = []
+        self.current_addresses = {}
+
         self.chain.append(block)
         return block
 
-    def new_transaction(self, sender, recipient, amount):
+    def new_transaction(self, sender, recipient, amount, signature=None):
+        if (sender != "0") and (sender not in self.balances()):
+            return (False, 'Sender not registered with blockchain')
+
+        # Check sufficient funds
+        if (sender != "0") and (self.balances()[sender] < amount):
+            return (False,'Insufficient amount in account')
+
+        if sender != "0":
+            j = {'sender': sender, 'recipient': recipient, 'amount': amount}
+            msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
+            print(self.addresses()[sender])
+            pub_key = nacl.signing.VerifyKey(self.addresses()[sender],encoder=nacl.encoding.HexEncoder)
+            print("PUBLIC KEY")
+            print(pub_key)
+            print("END PUBLIC KEY")
+            if not pub_key.verify(msg.encode(), signature):
+                print("Invalid signature")
+                return (False, "Invalid signature")
         self.current_transactions.append({
             'sender': sender,
             'recipient': recipient,
             'amount': amount,
         })
         return self.last_block['index'] + 1
-    
+
     @staticmethod
     def hash(block):
         block_string = json.dumps(block, sort_keys=True).encode()
@@ -77,6 +144,7 @@ class Blockchain(object):
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
+            print("Querying chain on node: " + node)
             response = requests.get(f'http://{node}/chain')
 
             if response.status_code == 200:
@@ -114,7 +182,14 @@ class Blockchain(object):
         file_object = open('nodes.dat', 'r')
         dict_object = json.load(file_object)
         self.nodes = dict_object
-    def mine(self):
+    def save_addresses(self):
+        with open('addresses.dat', 'w') as outfile:
+            json.dump(self.current_addresses, outfile)
+    def load_addresses(self):
+        file_object = open('addresses.dat', 'r')
+        dict_object = json.load(file_object)
+        self.current_addresses = dict_object
+    def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
         last_block = self.last_block
         last_proof = last_block['proof']
@@ -124,7 +199,7 @@ class Blockchain(object):
         # Отправитель “0” означает, что узел заработал крипто-монету
         self.new_transaction(
             sender="0",
-            recipient=node_identifier,
+            recipient=miner_address,
             amount=50,
         )
         # Создаем новый блок, путем внесения его в цепь

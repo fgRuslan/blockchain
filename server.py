@@ -4,6 +4,7 @@ def load_all():
     try:
         blockchain.load_chain()
         blockchain.load_pending_tx()
+        blockchain.load_addresses()
     except:
         print("Could not load chain from file")
     finally:
@@ -12,6 +13,7 @@ def save_all():
     try:
         blockchain.save_chain()
         blockchain.save_pending_tx()
+        blockchain.save_addresses()
     except:
         print("Could not save chain to file")
     finally:
@@ -50,6 +52,57 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
+
+@app.route('/addresses', methods=['GET'])
+def addresses():
+    return jsonify(blockchain.addresses()), 200
+
+@app.route('/balances', methods=['GET'])
+def balances():
+    response = blockchain.balances()
+    return jsonify(response), 200
+
+@app.route('/transactions/new', methods=['POST'])
+def new_transaction():
+    values = request.get_json()
+
+    # Check that the required fields are in the POST'ed data
+    required = ['sender', 'recipient', 'amount','signature']
+    if not all(k in values for k in required):
+        return 'Missing values', 400
+
+    index,err = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'],
+                                           values['signature'])
+
+    if index:
+        response = {'message': f'Transaction will be added to Block {index}'}
+    else:
+        response = {'message': f'Transaction failed because of: {err}'}
+    return jsonify(response), 201
+
+
+@app.route('/addresses/register', methods=['POST'])
+def reg_address():
+    values = request.get_json()
+    address = values.get('address')
+    key = values.get('key')
+    #required = ['address', 'key']
+    #if not all([x in required for x in values]):
+    #    return 'Missing values', 400
+
+    result = blockchain.new_address(address, key)
+    blockchain.save_addresses()
+
+    if result:
+        response = {
+            'message': 'Address added',
+        }
+        return jsonify(response),201
+    else:
+        response = {
+            'message': 'Error',
+        }
+        return jsonify(response),400
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():

@@ -1,6 +1,7 @@
 exec(open("./Blockchain.py").read())
 blockchain.load_chain()
 blockchain.load_pending_tx()
-blockchain.mine()
+blockchain.load_addresses()
+blockchain.mine("Alice")
 blockchain.save_chain()
 blockchain.save_pending_tx()
