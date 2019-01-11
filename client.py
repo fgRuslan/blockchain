@@ -39,14 +39,14 @@ def send():
     #BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     #YOU CAN NOT LOAD SIGNING KEY FROM ITS SERIALIZED VALUE
     #https://github.com/pyca/pynacl/issues/501
-    sk = nacl.signing.SigningKey(send_sk.get(), encoder=nacl.encoding.HexEncoder)
+    SK = nacl.signing.SigningKey(send_sk.get(), encoder=nacl.encoding.HexEncoder)
     j = {'sender': address,
               'recipient': send_entry.get(),
               'amount': int(send_amount.get())}
-    
     msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
-    sig = sk.sign(msg.encode())
-    j['signature'] = sig
+    sig = SK.sign(msg.encode())
+    j['signature'] = str(sig)
+    print("SIGNATURE\n")
     print(sig)
     req = requests.post(f'http://{self_addr}:{self_port}/transactions/new', json=j)
     print("Transaction: ", req.content.decode())
