@@ -22,6 +22,7 @@ class Blockchain(object):
         self.current_addresses = {}
 
     def new_address(self, address, key):
+        self.load_addresses()
         if address in self.addresses():
             return False
         blockchain.current_addresses[address] = key
