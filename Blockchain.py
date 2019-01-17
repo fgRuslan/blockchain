@@ -28,12 +28,12 @@ class Blockchain(object):
         blockchain.current_addresses[address] = key
         self.save_chain()
         self.save_pending_tx()
+        self.save_addresses()
         return True
 
     def addresses(self):
         result = {}
         for c in self.chain:
-            print(c)
             for a,v in c['addresses'].items():
                 if a in result:
                     raise Exception("Address should only exist once in chain")
