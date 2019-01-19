@@ -71,8 +71,7 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Missing values', 400
 
-    index,err = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'],
-                                           str(values['signature']))
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
 
     if index:
         response = {'message': f'Transaction will be added to Block {index}'}

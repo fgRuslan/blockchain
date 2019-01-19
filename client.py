@@ -1,6 +1,7 @@
 from tkinter import *
 import threading
 import requests
+import base64
 
 exec(open("./Blockchain.py").read())
 
@@ -29,25 +30,19 @@ finally:
 address="Alice"
 def save_blockchain():
     blockchain.save_chain()
-    blockchain.save_pending_tx()
+    #blockchain.save_pending_tx()
 def load_blockchain():
     blockchain.load_chain()
-    blockchain.load_pending_tx()
+    #blockchain.load_pending_tx()
 def send():
-    #BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #YOU CAN NOT LOAD SIGNING KEY FROM ITS SERIALIZED VALUE
-    #https://github.com/pyca/pynacl/issues/501
     SK = nacl.signing.SigningKey(send_sk.get(), encoder=nacl.encoding.HexEncoder)
     j = {'sender': address,
               'recipient': send_entry.get(),
               'amount': int(send_amount.get())}
     msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
     sig = SK.sign(msg.encode())
-    j['signature'] = str(sig)
-    print("SIGNATURE\n")
-    print(sig)
+    sig = sig[:len(sig) - len(msg)]
+    j['signature'] = base64.b64encode(sig).decode()
     req = requests.post(f'http://{self_addr}:{self_port}/transactions/new', json=j)
     print("Transaction: ", req.content.decode())
     save_blockchain()

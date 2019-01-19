@@ -11,6 +11,8 @@ import nacl.utils
 from nacl.public import PrivateKey, Box
 import nacl.encoding
 import nacl.signing
+import base64
+import binascii
 
 node_identifier = str(uuid4()).replace('-', '')
 
@@ -87,11 +89,8 @@ class Blockchain(object):
         if sender != "0":
             j = {'sender': sender, 'recipient': recipient, 'amount': amount}
             msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
-            print(self.addresses()[sender])
+            signature = base64.b64decode(signature.encode())
             pub_key = nacl.signing.VerifyKey(self.addresses()[sender],encoder=nacl.encoding.HexEncoder)
-            print("PUBLIC KEY")
-            print(pub_key)
-            print("END PUBLIC KEY")
             if not pub_key.verify(msg.encode(), signature):
                 print("Invalid signature")
                 return (False, "Invalid signature")
@@ -100,6 +99,7 @@ class Blockchain(object):
             'recipient': recipient,
             'amount': amount,
         })
+        self.save_pending_tx()
         return self.last_block['index'] + 1
 
     @staticmethod
