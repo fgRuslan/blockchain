@@ -38,7 +38,7 @@ def send():
     SK = nacl.signing.SigningKey(send_sk.get(), encoder=nacl.encoding.HexEncoder)
     j = {'sender': address,
               'recipient': send_entry.get(),
-              'amount': int(send_amount.get())}
+              'amount': float(send_amount.get())}
     msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
     sig = SK.sign(msg.encode())
     sig = sig[:len(sig) - len(msg)]
