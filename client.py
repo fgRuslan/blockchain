@@ -13,9 +13,11 @@ root.title("PyCoin")
 nodes_w = None
 nodes_list = None
 pk_w = None
+a_w = None
 
 sk = None
 pk = None
+addresses_list = None
 
 self_addr = "127.0.0.1"
 self_port = "5000"
@@ -53,6 +55,11 @@ def save_nodes():
     lst = nodes_list.get(1.0, END).splitlines()
     json.dump(lst, f)
     f.close()
+def load_nodes():
+    file_object = open('nodes.dat', 'r')
+    nodes = json.load(file_object)
+    for e in nodes:
+        nodes_list.insert(INSERT, e + "\n")
 def discover_nodes():
     try:
         blockchain.discover_peers()
@@ -70,6 +77,7 @@ def nodes_window():
     nodes_list.pack()
     nodes_list_save_button.pack(pady=10)
     nodes_discover_button.pack(pady=10)
+    load_nodes()
 def gen_pk():
     global sk
     sk = nacl.signing.SigningKey.generate()#.encode(encoder=nacl.encoding.HexEncoder)
@@ -93,7 +101,38 @@ def new_privkeys():
     l.pack(pady=10)
     pk_list.pack()
     pk_gen_new.pack(pady=10)
+def addresses_window():
+    a_w = Tk()
+    a_w.title("Your addresses")
+    l = Label(a_w, text="Your addresses")
+    l1 = Label(a_w, text="Your addresses and keys are stored in address,publickey format")
+    l.pack(pady=10)
+    l1.pack(pady=10)
+    global addresses_list
+    addresses_list = Text(a_w)
+    b = Button(a_w, command=save_addresses, text="Save your addresses")
+    addresses_list.pack()
+    b.pack(pady=10)
+    load_addresses()
+def save_addresses():
+    a_list = {}
+    lst = addresses_list.get(1.0, END).splitlines()
+    print(lst)
+    for e in lst:
+        e = e.split(',')
+        a_list.update({f'{e[0]}': f'{e[1]}'})
+    with open("addresses.dat", "w") as outfile:
+        json.dump(a_list, outfile)
+    outfile.close()
 
+def load_addresses():
+    file_object = open('addresses.dat', 'r')
+    a_list = json.load(file_object)
+    lst = []
+    for key,value in a_list.items():
+        lst.append(f'{key},{value}\n')
+    for line in lst:
+        addresses_list.insert(INSERT, line)
 menubar = Menu(root)
 root.config(menu=menubar)
 
@@ -103,6 +142,7 @@ fileMenu.add_command(label="List nodes", command=nodes_window)
 menubar.add_cascade(label="File", menu=fileMenu)
 walletmenu = Menu(menubar)
 walletmenu.add_command(label="Generate private keys", command=new_privkeys)
+walletmenu.add_command(label="Your addresses", command=addresses_window)
 menubar.add_cascade(label="Wallet", menu=walletmenu)
 #Send section
 l1 = Label(text="Отправить", font="Arial 14")
