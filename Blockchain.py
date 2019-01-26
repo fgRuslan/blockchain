@@ -85,6 +85,8 @@ class Blockchain(object):
         # Check sufficient funds
         if (sender != "0") and (self.balances()[sender] < amount):
             return (False,'Insufficient amount in account')
+        if (amount < 0):
+            return(False, 'Negative amount of coins')
 
         if sender != "0":
             j = {'sender': sender, 'recipient': recipient, 'amount': amount}
