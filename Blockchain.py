@@ -21,26 +21,6 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.nodes = []
-        self.current_addresses = {}
-
-    def new_address(self, address, key):
-        self.load_addresses()
-        if address in self.addresses():
-            return False
-        blockchain.current_addresses[address] = key
-        self.save_chain()
-        self.save_pending_tx()
-        self.save_addresses()
-        return True
-
-    def addresses(self):
-        result = {}
-        for c in self.chain:
-            for a,v in c['addresses'].items():
-                if a in result:
-                    raise Exception("Address should only exist once in chain")
-                result[a] = v
-        return result
 
     def balances(self):
         response = {}
@@ -68,12 +48,10 @@ class Blockchain(object):
             'index': len(self.chain) + 1,
             'timestamp': time_stamp or time(),
             'transactions': self.current_transactions,
-            'addresses': self.current_addresses,
             'proof': proof,
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
         self.current_transactions = []
-        self.current_addresses = {}
 
         self.chain.append(block)
         return block
@@ -185,13 +163,6 @@ class Blockchain(object):
         file_object = open('nodes.dat', 'r')
         dict_object = json.load(file_object)
         self.nodes = dict_object
-    def save_addresses(self):
-        with open('addresses.dat', 'w') as outfile:
-            json.dump(self.current_addresses, outfile)
-    def load_addresses(self):
-        file_object = open('addresses.dat', 'r')
-        dict_object = json.load(file_object)
-        self.current_addresses = dict_object
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
         last_block = self.last_block

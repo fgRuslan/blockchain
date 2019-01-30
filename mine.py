@@ -1,8 +1,6 @@
 exec(open("./Blockchain.py").read())
 blockchain.load_chain()
 blockchain.load_pending_tx()
-blockchain.load_addresses()
 blockchain.mine("15c0486a008d3d8e0f920222df7d18215d90c2cfa489f133a7a583e04c575007")
 blockchain.save_chain()
 blockchain.save_pending_tx()
-blockchain.save_addresses()
