@@ -1,3 +1,5 @@
+import base64
+
 exec(open("./Blockchain.py").read())
 #1337
 def load_all():
@@ -37,6 +39,9 @@ try:
     blockchain.resolve_conflicts()
 except:
     print("Could not syncronize")
+
+print(blockchain.validate_chain(blockchain.chain))
+
 save_nodes()
 save_all()
 
@@ -65,7 +70,12 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Missing values', 400
 
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], values['signature'])
+    sig = values['signature']
+    print(sig)
+    print(type(sig))
+    sig = sig
+
+    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'], sig)
 
     if index:
         response = {'message': f'Transaction will be added to Block {index}'}

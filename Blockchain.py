@@ -69,15 +69,17 @@ class Blockchain(object):
         if sender != "0":
             j = {'sender': sender, 'recipient': recipient, 'amount': amount}
             msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
-            signature = base64.b64decode(signature.encode())
+            mysignature = base64.b64decode(signature.encode())
             pub_key = nacl.signing.VerifyKey(sender,encoder=nacl.encoding.HexEncoder)
-            if not pub_key.verify(msg.encode(), signature):
+            if not pub_key.verify(msg.encode(), mysignature):
                 print("Invalid signature")
                 return (False, "Invalid signature")
+        sig = signature
         self.current_transactions.append({
             'sender': sender,
             'recipient': recipient,
             'amount': amount,
+            'signature': sig,
         })
         self.save_pending_tx()
         return self.last_block['index'] + 1
@@ -108,13 +110,26 @@ class Blockchain(object):
         current_index = 1
         while current_index < len(chain):
             block = chain[current_index]
+            block_txs = block['transactions']
+            for tx in block_txs:
+                if not tx['sender'] == '0':
+                    signature = tx['signature']
+                    signature = base64.b64decode(signature.encode())
+                    pub_key = nacl.signing.VerifyKey(tx['sender'], encoder=nacl.encoding.HexEncoder)
+
+                    j = {'sender': tx['sender'], 'recipient': tx['recipient'], 'amount': tx['amount']}
+                    msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
+
+                    if not pub_key.verify(msg.encode(), signature):
+                        print(f"Invalid signature at block {block}")
+                        return (False, f"Invalid signature at block {block}")
             if block['previous_hash'] != self.hash(last_block):
                 return False
             if not self.valid_proof(last_block['proof'], block['proof']):
                 return False
             last_block = block
             current_index += 1
-            return True
+        return True
     def resolve_conflicts(self):
         print("resolving conflicts")
         neighbours = self.nodes
