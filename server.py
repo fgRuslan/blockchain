@@ -40,7 +40,9 @@ try:
 except:
     print("Could not syncronize")
 
-print(blockchain.validate_chain(blockchain.chain))
+valid = blockchain.validate_chain(blockchain.chain)
+if not valid:
+    blockchain.resolve_conflicts()
 
 save_nodes()
 save_all()

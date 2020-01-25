@@ -8,6 +8,7 @@ from uuid import uuid4
 import requests
 
 import nacl.utils
+from nacl.exceptions import BadSignatureError
 from nacl.public import PrivateKey, Box
 import nacl.encoding
 import nacl.signing
@@ -120,9 +121,13 @@ class Blockchain(object):
                     j = {'sender': tx['sender'], 'recipient': tx['recipient'], 'amount': tx['amount']}
                     msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
 
-                    if not pub_key.verify(msg.encode(), signature):
-                        print(f"Invalid signature at block {block}")
-                        return (False, f"Invalid signature at block {block}")
+                    try:
+                        okay = pub_key.verify(msg.encode(), signature)
+                    except BadSignatureError:
+                        okay = False
+                    if not okay:
+                        print(f"Invalid signature at block {block['index']}")
+                        return False
             if block['previous_hash'] != self.hash(last_block):
                 return False
             if not self.valid_proof(last_block['proof'], block['proof']):
