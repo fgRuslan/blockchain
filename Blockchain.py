@@ -50,7 +50,7 @@ class Blockchain(object):
             'timestamp': time_stamp or time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[-1]),
+            'previous_hash': previous_hash or self.hash(last_block),
         }
         self.current_transactions = []
 
@@ -92,15 +92,17 @@ class Blockchain(object):
     @property
     def last_block(self):
         return self.chain[-1]
-    def proof_of_work(self, last_proof):
+    def proof_of_work(self, last_block):
+        last_proof = last_block['proof']
+        previous_hash = self.hash(self.last_block)
         proof = 0
-        while self.valid_proof(last_proof, proof) is False:
+        while self.valid_proof(last_proof, proof, previous_hash) is False:
             proof +=1
 
         return proof
     @staticmethod
-    def valid_proof(last_proof, proof):
-        guess = f'{last_proof}{proof}'.encode()
+    def valid_proof(last_proof, proof, last_hash):
+        guess = f'{last_proof}{proof}{last_hash}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
     def register_node(self, address):
@@ -130,7 +132,7 @@ class Blockchain(object):
                         return False
             if block['previous_hash'] != self.hash(last_block):
                 return False
-            if not self.valid_proof(last_block['proof'], block['proof']):
+            if not self.valid_proof(last_block['proof'], block['proof'], last_block['previous_hash']):
                 return False
             last_block = block
             current_index += 1
@@ -186,8 +188,7 @@ class Blockchain(object):
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
         last_block = self.last_block
-        last_proof = last_block['proof']
-        proof = self.proof_of_work(last_proof)
+        proof = self.proof_of_work(last_block)
 
         # Мы должны получить вознаграждение за найденное подтверждение
         # Отправитель “0” означает, что узел заработал крипто-монету
