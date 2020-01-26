@@ -134,7 +134,7 @@ send_pk = Entry(width=50, text="Public key")
 send_pk.grid(column=1, row=3)
 
 lbl3 = Label(text="Private key: ")
-lbl3.grid(column=0, row=3)
+lbl3.grid(column=0, row=4)
 send_sk = Entry(width=50, text="Private key")
 send_sk.grid(column=1, row=4)
 
