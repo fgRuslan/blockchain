@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 root = Tk()
 root.title("PyCoin")
-#root.geometry('400x250')
+root.geometry('435x150')
 
 nodes_w = None
 nodes_list = None
@@ -116,29 +116,30 @@ walletmenu.add_command(label="Generate private keys", command=new_privkeys)
 menubar.add_cascade(label="Wallet", menu=walletmenu)
 #Send section
 l1 = Label(text="Отправить", font="Arial 14")
+l1.grid(column=1, row=0)
 
 lbl = Label(text="Recipient: ")
-lbl.grid(column=0, row=0)
+lbl.grid(column=0, row=1)
 send_entry = Entry(width=50)
-send_entry.grid(column=1, row=0)
+send_entry.grid(column=1, row=1)
 
 lbl1 = Label(text="Amount: ")
-lbl1.grid(column=0, row=1)
+lbl1.grid(column=0, row=2)
 send_amount = Entry(width=50, text="Amount")
-send_amount.grid(column=1, row=1)
+send_amount.grid(column=1, row=2)
 
 lbl2 = Label(text="Public key: ")
-lbl2.grid(column=0, row=2)
+lbl2.grid(column=0, row=3)
 send_pk = Entry(width=50, text="Public key")
-send_pk.grid(column=1, row=2)
+send_pk.grid(column=1, row=3)
 
 lbl3 = Label(text="Private key: ")
 lbl3.grid(column=0, row=3)
 send_sk = Entry(width=50, text="Private key")
-send_sk.grid(column=1, row=3)
+send_sk.grid(column=1, row=4)
 
 send_button = Button(text="Отправить", command=send)
-send_button.grid(column=1, row=4)
+send_button.grid(column=1, row=5)
 
 #l1.pack(pady=10)
 #lbl.pack()
