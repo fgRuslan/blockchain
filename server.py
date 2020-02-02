@@ -49,7 +49,6 @@ try:
 except:
     print("Could not syncronize")
 for blockindex in range(0, blockchain.block_count - 1):
-    print(blockindex)
     valid = blockchain.validate_block(blockindex)
     if not valid:
         blockchain.resolve_conflicts()
@@ -63,7 +62,6 @@ app = Flask(__name__)
 @app.route('/chain', methods=['GET'])
 def full_chain():
     values = request.args.get('index')
-    print(values)
     #Check that the required fields are in the POST'ed data
     #required = ['index']
     #if not all(k in values for k in required):

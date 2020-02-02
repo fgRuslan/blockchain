@@ -24,9 +24,16 @@ class Blockchain(object):
 
         self.block_count = 0
 
+    @staticmethod
+    def get_block_count():
+        # path joining version for other paths
+        DIR = './blockchain'
+        return len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])
+
     def balances(self):
+        self.block_count = self.get_block_count()
         response = {}
-        for number in range(0, self.block_count - 1):
+        for number in range(0, self.block_count):
             c = self.load_block(number)
             for t in c['transactions']:
                 # import pdb; pdb.set_trace()
@@ -45,10 +52,6 @@ class Blockchain(object):
                 response[t['sender']] -= t['amount']
                 response[t['recipient']] += t['amount']
         return response
-    def get_block_count(self):
-        # path joining version for other paths
-        DIR = './blockchain'
-        return len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])
     def new_block(self, proof, previous_hash=None, time_stamp=None):
         block = {
             'index': self.block_count,
@@ -184,7 +187,6 @@ class Blockchain(object):
             json.dump(self.chain, outfile)
 
     def save_block(self, block_data, number=None):
-        print(block_data)
         my_number = number or block_data['index']
         with open(f'blockchain/{my_number}.dat', 'w') as outfile:
             json.dump(block_data, outfile)
@@ -220,10 +222,7 @@ class Blockchain(object):
 
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
-        print(self.block_count)
-        print(self.block_count - 1)
         last_block = self.load_block(self.block_count - 1)
-        print(last_block)
         proof = self.proof_of_work(last_block)
 
         # Мы должны получить вознаграждение за найденное подтверждение
