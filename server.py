@@ -48,7 +48,7 @@ try:
     blockchain.resolve_conflicts()
 except:
     print("Could not syncronize")
-for blockindex in range(1, blockchain.block_count):
+for blockindex in range(0, blockchain.block_count - 1):
     print(blockindex)
     valid = blockchain.validate_block(blockindex)
     if not valid:

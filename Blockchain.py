@@ -26,7 +26,7 @@ class Blockchain(object):
 
     def balances(self):
         response = {}
-        for number in self.block_count:
+        for number in range(0, self.block_count - 1):
             c = self.load_block(number)
             for t in c['transactions']:
                 # import pdb; pdb.set_trace()
@@ -44,7 +44,7 @@ class Blockchain(object):
                     response[t['recipient']] = 0
                 response[t['sender']] -= t['amount']
                 response[t['recipient']] += t['amount']
-            return response
+        return response
     def get_block_count(self):
         # path joining version for other paths
         DIR = './blockchain'
@@ -99,7 +99,7 @@ class Blockchain(object):
 
     @property
     def last_block(self):
-        return self.load_block(self.block_count)
+        return self.load_block(self.block_count - 1)
 
     def proof_of_work(self, last_block):
         last_proof = last_block['proof']
@@ -121,7 +121,7 @@ class Blockchain(object):
         self.nodes.append(parsed_url.netloc)
 
     def validate_block(self, my_block):
-        last_block = self.load_block(self.block_count)
+        last_block = self.load_block(self.block_count - 1)
         block = self.load_block(my_block)
         # my_block = self.load_block(block)
         block_txs = block['transactions']
@@ -220,7 +220,10 @@ class Blockchain(object):
 
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
+        print(self.block_count)
+        print(self.block_count - 1)
         last_block = self.load_block(self.block_count - 1)
+        print(last_block)
         proof = self.proof_of_work(last_block)
 
         # Мы должны получить вознаграждение за найденное подтверждение
