@@ -1,21 +1,20 @@
+import base64
 import hashlib
 import json
 from time import time
 from urllib.parse import urlparse
-
-from flask import Flask, jsonify, request
 from uuid import uuid4
-import requests
 
-import nacl.utils
-from nacl.exceptions import BadSignatureError
-from nacl.public import PrivateKey, Box
 import nacl.encoding
 import nacl.signing
-import base64
-import binascii
+import nacl.utils
+import requests
+from nacl.exceptions import BadSignatureError
+
+import os
 
 node_identifier = str(uuid4()).replace('-', '')
+
 
 class Blockchain(object):
     def __init__(self):
@@ -23,38 +22,49 @@ class Blockchain(object):
         self.current_transactions = []
         self.nodes = []
 
+        self.block_count = 0
+
+    @staticmethod
+    def get_block_count():
+        # path joining version for other paths
+        DIR = './blockchain'
+        return len([name for name in os.listdir(DIR) if os.path.isfile(os.path.join(DIR, name))])
+
     def balances(self):
+        self.block_count = self.get_block_count()
         response = {}
-        for c in self.chain:
+        for number in range(0, self.block_count):
+            c = self.load_block(number)
             for t in c['transactions']:
-                #import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 if t['sender'] not in response:
                     response[t['sender']] = 0
                 if t['recipient'] not in response:
                     response[t['recipient']] = 0
                 response[t['sender']] -= t['amount']
                 response[t['recipient']] += t['amount']
-        # Transactions not yet in the chain (not sure right way to include these..)
-        for t in self.current_transactions:
-            if t['sender'] not in response:
-                response[t['sender']] = 0
-            if t['recipient'] not in response:
-                response[t['recipient']] = 0
-            response[t['sender']] -= t['amount']
-            response[t['recipient']] += t['amount']
+            # Transactions not yet in the chain (not sure right way to include these..)
+            for t in self.current_transactions:
+                if t['sender'] not in response:
+                    response[t['sender']] = 0
+                if t['recipient'] not in response:
+                    response[t['recipient']] = 0
+                response[t['sender']] -= t['amount']
+                response[t['recipient']] += t['amount']
         return response
-
     def new_block(self, proof, previous_hash=None, time_stamp=None):
         block = {
-            'index': len(self.chain) + 1,
+            'index': self.block_count,
             'timestamp': time_stamp or time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash or self.hash(last_block),
+            'previous_hash': previous_hash or self.hash(self.last_block),
         }
         self.current_transactions = []
 
-        self.chain.append(block)
+        self.save_block(block, self.block_count)
+        self.block_count = self.get_block_count()
+
         return block
 
     def new_transaction(self, sender, recipient, amount, signature=None):
@@ -63,15 +73,15 @@ class Blockchain(object):
 
         # Check sufficient funds
         if (sender != "0") and (self.balances()[sender] < amount):
-            return (False,'Insufficient amount in account')
+            return (False, 'Insufficient amount in account')
         if (amount < 0):
-            return(False, 'Negative amount of coins')
+            return (False, 'Negative amount of coins')
 
         if sender != "0":
             j = {'sender': sender, 'recipient': recipient, 'amount': amount}
             msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
             mysignature = base64.b64decode(signature.encode())
-            pub_key = nacl.signing.VerifyKey(sender,encoder=nacl.encoding.HexEncoder)
+            pub_key = nacl.signing.VerifyKey(sender, encoder=nacl.encoding.HexEncoder)
             if not pub_key.verify(msg.encode(), mysignature):
                 print("Invalid signature")
                 return (False, "Invalid signature")
@@ -89,105 +99,130 @@ class Blockchain(object):
     def hash(block):
         block_string = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
+
     @property
     def last_block(self):
-        return self.chain[-1]
+        return self.load_block(self.block_count - 1)
+
     def proof_of_work(self, last_block):
         last_proof = last_block['proof']
         previous_hash = self.hash(self.last_block)
         proof = 0
         while self.valid_proof(last_proof, proof, previous_hash) is False:
-            proof +=1
+            proof += 1
 
         return proof
+
     @staticmethod
     def valid_proof(last_proof, proof, last_hash):
         guess = f'{last_proof}{proof}{last_hash}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
+
     def register_node(self, address):
         parsed_url = urlparse(address)
         self.nodes.append(parsed_url.netloc)
-    def validate_chain(self, chain):
-        last_block = chain[0]
-        current_index = 1
-        while current_index < len(chain):
-            block = chain[current_index]
-            block_txs = block['transactions']
-            for tx in block_txs:
-                if not tx['sender'] == '0':
-                    signature = tx['signature']
-                    signature = base64.b64decode(signature.encode())
-                    pub_key = nacl.signing.VerifyKey(tx['sender'], encoder=nacl.encoding.HexEncoder)
 
-                    j = {'sender': tx['sender'], 'recipient': tx['recipient'], 'amount': tx['amount']}
-                    msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
+    def validate_block(self, my_block):
+        last_block = self.load_block(self.block_count - 1)
+        block = self.load_block(my_block)
+        # my_block = self.load_block(block)
+        block_txs = block['transactions']
+        for tx in block_txs:
+            if not tx['sender'] == '0':
+                signature = tx['signature']
+                signature = base64.b64decode(signature.encode())
+                pub_key = nacl.signing.VerifyKey(tx['sender'], encoder=nacl.encoding.HexEncoder)
 
-                    try:
-                        okay = pub_key.verify(msg.encode(), signature)
-                    except BadSignatureError:
-                        okay = False
-                    if not okay:
-                        print(f"Invalid signature at block {block['index']}")
-                        return False
-            if block['previous_hash'] != self.hash(last_block):
-                return False
-            if not self.valid_proof(last_block['proof'], block['proof'], last_block['previous_hash']):
-                return False
-            last_block = block
-            current_index += 1
+                j = {'sender': tx['sender'], 'recipient': tx['recipient'], 'amount': tx['amount']}
+                msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
+
+                try:
+                    okay = pub_key.verify(msg.encode(), signature)
+                except BadSignatureError:
+                    okay = False
+                if not okay:
+                    print(f"Invalid signature at block {block['index']}")
+                    return False
+        if block['previous_hash'] != self.hash(last_block):
+            return False
+        if not self.valid_proof(last_block['proof'], block['proof'], last_block['previous_hash']):
+            return False
+        # last_block = block
         return True
+
     def resolve_conflicts(self):
         print("resolving conflicts")
         neighbours = self.nodes
         new_chain = None
 
         # We're only looking for chains longer than ours
-        max_length = len(self.chain)
+        # max_length = len(self.chain)
+        max_length = self.block_count
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
             print("Querying chain on node: " + node)
+            count = requests.get(f'http://{node}/length')
             response = requests.get(f'http://{node}/chain')
-
             if response.status_code == 200:
                 length = response.json()['length']
-                chain = response.json()['chain']
 
-                # Check if the length is longer and the chain is valid
-                if length > max_length and self.validate_chain(chain):
-                    max_length = length
-                    new_chain = chain
+                for other_block_index in range(0, count):
+                    response = requests.get(f'http://{node}/chain?index={other_block_index}')
+                    block = response.json()['chain']
+                    # Check if the length is longer and the chain is valid
+                    if length > max_length and self.validate_block(block):
+                        if self.load_block(other_block_index) != block:
+                            max_length = length
+                            new_block = block
+                            self.save_block(new_block)
+                    else:
+                        return False
 
-        # Replace our chain if we discovered a new, valid chain longer than ours
-        if new_chain:
-            self.chain = new_chain
             return True
 
-        return False
     def save_chain(self):
         with open('blockchain.dat', 'w') as outfile:
             json.dump(self.chain, outfile)
+
+    def save_block(self, block_data, number=None):
+        my_number = number or block_data['index']
+        with open(f'blockchain/{my_number}.dat', 'w') as outfile:
+            json.dump(block_data, outfile)
+
+    # NOTE: This function is meant to be called regularly because we need to sync our chain
+    def load_block(self, number):
+        file_object = open(f'blockchain/{number}.dat', 'r')
+        dict_object = json.load(file_object)
+        self.block_count = self.get_block_count()
+        return dict_object
+
     def load_chain(self):
         file_object = open('blockchain.dat', 'r')
         dict_object = json.load(file_object)
         self.chain = dict_object
+
     def save_pending_tx(self):
         with open('pending_txs.dat', 'w') as outfile:
             json.dump(self.current_transactions, outfile)
+
     def load_pending_tx(self):
         with open('pending_txs.dat', 'r') as file_object:
             self.current_transactions = json.load(file_object)
+
     def save_nodes(self):
         with open('nodes.dat', 'w') as outfile:
             json.dump(self.nodes, outfile)
+
     def load_nodes(self):
         file_object = open('nodes.dat', 'r')
         dict_object = json.load(file_object)
         self.nodes = dict_object
+
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
-        last_block = self.last_block
+        last_block = self.load_block(self.block_count - 1)
         proof = self.proof_of_work(last_block)
 
         # Мы должны получить вознаграждение за найденное подтверждение
@@ -200,6 +235,7 @@ class Blockchain(object):
         # Создаем новый блок, путем внесения его в цепь
         previous_hash = self.hash(last_block)
         block = self.new_block(proof, previous_hash)
+
     def discover_peers(self):
         load_nodes()
         neighbours = self.nodes
@@ -222,5 +258,44 @@ class Blockchain(object):
         else:
             return False
 
+
 blockchain = Blockchain()
 blockchain.new_block(previous_hash=1, proof=100, time_stamp=1337)
+
+
+def load_all():
+    try:
+        blockchain.load_chain()
+        blockchain.load_pending_tx()
+    except:
+        print("Could not load chain from file")
+    finally:
+        pass
+
+
+def save_all():
+    try:
+        blockchain.save_chain()
+        blockchain.save_pending_tx()
+    except:
+        print("Could not save chain to file")
+    finally:
+        pass
+
+
+def save_nodes():
+    try:
+        blockchain.save_nodes()
+    except:
+        print("Could not save nodes to file")
+    finally:
+        pass
+
+
+def load_nodes():
+    try:
+        blockchain.load_nodes()
+    except:
+        print("Could not load nodes from file")
+    finally:
+        pass
