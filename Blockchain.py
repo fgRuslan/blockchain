@@ -15,6 +15,7 @@ import os
 
 node_identifier = str(uuid4()).replace('-', '')
 
+hardcoded_genesis_block = {"index": 0, "timestamp": 1337, "transactions": [], "proof": 100, "previous_hash": 1}
 
 class Blockchain(object):
     def __init__(self):
@@ -146,39 +147,84 @@ class Blockchain(object):
                     return False
         if block['previous_hash'] != self.hash(last_block):
             return False
-        if not self.valid_proof(last_block['proof'], block['proof'], last_block['previous_hash']):
+        if not self.valid_proof(last_block['proof'], block['proof'], block['previous_hash']):
+            return False
+        # last_block = block
+        return True
+
+    def get_node_block_by_index(self, node, index):
+        response = requests.get(f'http://{node}/chain?index={index}')
+        block = response.json()['chain']
+        return block
+
+    def validate_block_data(self, my_block, node=None):
+        #last_block = self.load_block(self.block_count - 1)
+        block = my_block
+        index = block['index']
+
+        if index != 0:
+            last_block = self.get_node_block_by_index(node, index - 1) or self.load_block(self.block_count - 1)
+        else: #If this is genesis block
+            if block == hardcoded_genesis_block:
+                return True
+            else:
+                return False
+        # my_block = self.load_block(block)
+        block_txs = block['transactions']
+        for tx in block_txs:
+            if not tx['sender'] == '0':
+                signature = tx['signature']
+                signature = base64.b64decode(signature.encode())
+                pub_key = nacl.signing.VerifyKey(tx['sender'], encoder=nacl.encoding.HexEncoder)
+
+                j = {'sender': tx['sender'], 'recipient': tx['recipient'], 'amount': tx['amount']}
+                msg = f'sender:{j["sender"]},recipient:{j["recipient"]},amount:{j["amount"]}'
+
+                try:
+                    okay = pub_key.verify(msg.encode(), signature)
+                except BadSignatureError:
+                    okay = False
+                if not okay:
+                    print(f"Invalid signature at block {block['index']}")
+                    return False
+        if block['previous_hash'] != self.hash(last_block):
+            return False
+        if not self.valid_proof(last_block['proof'], block['proof'], block['previous_hash']):
             return False
         # last_block = block
         return True
 
     def resolve_conflicts(self):
+        self.block_count = self.get_block_count()
         print("resolving conflicts")
         neighbours = self.nodes
         new_chain = None
 
         # We're only looking for chains longer than ours
         # max_length = len(self.chain)
-        max_length = self.block_count
+        max_length = self.block_count - 1
 
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
             print("Querying chain on node: " + node)
-            count = requests.get(f'http://{node}/length')
+            count = requests.get(f'http://{node}/length').text
+            length = int(count)
+            if length <= max_length:
+                continue
             response = requests.get(f'http://{node}/chain')
             if response.status_code == 200:
-                length = response.json()['length']
-
-                for other_block_index in range(0, count):
+                for other_block_index in range(0, int(count)):
                     response = requests.get(f'http://{node}/chain?index={other_block_index}')
                     block = response.json()['chain']
                     # Check if the length is longer and the chain is valid
-                    if length > max_length and self.validate_block(block):
-                        if self.load_block(other_block_index) != block:
-                            max_length = length
+                    if length > max_length and self.validate_block_data(block, node):
+                        #if self.load_block(other_block_index) != block:
+                            max_length += 1
                             new_block = block
-                            self.save_block(new_block)
+                            self.save_block(new_block, other_block_index)
                     else:
-                        return False
+                        #return False
+                        pass
 
             return True
 

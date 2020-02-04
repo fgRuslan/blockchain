@@ -51,7 +51,10 @@ except:
 for blockindex in range(0, blockchain.block_count - 1):
     valid = blockchain.validate_block(blockindex)
     if not valid:
-        blockchain.resolve_conflicts()
+        try:
+            blockchain.resolve_conflicts()
+        except:
+            print("DA I POHUY")
 
 save_nodes()
 save_all()
