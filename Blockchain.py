@@ -231,40 +231,48 @@ class Blockchain(object):
     def save_chain(self):
         with open('blockchain.dat', 'w') as outfile:
             json.dump(self.chain, outfile)
+        outfile.close()
 
     def save_block(self, block_data, number=None):
         my_number = number or block_data['index']
         with open(f'blockchain/{my_number}.dat', 'w') as outfile:
             json.dump(block_data, outfile)
+        outfile.close()
 
     # NOTE: This function is meant to be called regularly because we need to sync our chain
     def load_block(self, number):
         file_object = open(f'blockchain/{number}.dat', 'r')
         dict_object = json.load(file_object)
+        file_object.close()
         self.block_count = self.get_block_count()
         return dict_object
 
     def load_chain(self):
         file_object = open('blockchain.dat', 'r')
         dict_object = json.load(file_object)
+        file_object.close()
         self.chain = dict_object
 
     def save_pending_tx(self):
         with open('pending_txs.dat', 'w') as outfile:
             json.dump(self.current_transactions, outfile)
+        outfile.close()
 
     def load_pending_tx(self):
         with open('pending_txs.dat', 'r') as file_object:
             self.current_transactions = json.load(file_object)
+        file_object.close()
 
     def save_nodes(self):
         with open('nodes.dat', 'w') as outfile:
             json.dump(self.nodes, outfile)
+        outfile.close()
 
     def load_nodes(self):
         file_object = open('nodes.dat', 'r')
         dict_object = json.load(file_object)
         self.nodes = dict_object
+        file_object.close()
 
     def mine(self, miner_address):
         # Мы запускаем алгоритм подтверждения работы, чтобы получить следующее подтверждение…
